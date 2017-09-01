@@ -1,4 +1,4 @@
-package com.why.conn_lib;
+package com.why.conn_lib.client;
 
 import android.app.Service;
 import android.content.Intent;

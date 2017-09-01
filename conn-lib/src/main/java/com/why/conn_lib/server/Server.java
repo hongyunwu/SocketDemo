@@ -1,6 +1,10 @@
-package com.why.conn_lib;
+package com.why.conn_lib.server;
 
 import android.util.Log;
+
+import com.why.conn_lib.utils.DefaultAddress;
+import com.why.conn_lib.utils.NumCovertUtils;
+import com.why.conn_lib.model.Frame;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -31,6 +35,10 @@ public class Server extends Thread {
     private final int STATE_SOCKET_CLOSE = 1 << 1;//socket关闭
     private final int STATE_SOCKET_FAILED = 1 << 2;//连接失败
     private final int STATE_SOCKET_BIND = 1 << 3;//端口绑定
+
+    //超时检查器
+    private final TimeOutChecker timeOutChecker;
+    private final Object mLock = new Object();
     //当前状态
     private int state = STATE_SOCKET_CLOSE;
     //socket
@@ -60,6 +68,7 @@ public class Server extends Thread {
         }
 
         frames = new LinkedHashMap<>();
+        timeOutChecker = new TimeOutChecker(mLock,frames);
 
     }
 
@@ -88,6 +97,7 @@ public class Server extends Thread {
             socket.setReuseAddress(true);
             socket.bind(new InetSocketAddress(inetAddress,port));
             state = STATE_SOCKET_BIND;
+            timeOutChecker.check();//开始超时检查
         } catch (SocketException e) {
             e.printStackTrace();
             state = STATE_SOCKET_FAILED;
@@ -116,7 +126,8 @@ public class Server extends Thread {
 
 
         }
-
+        //退出超时检查
+        timeOutChecker.quit();
 
 
 
@@ -132,6 +143,7 @@ public class Server extends Thread {
         //重新构建一个frame出来，装到一个集合中
         Frame frame = new Frame(data);
         Log.i(TAG,"frame:"+frame+",id->"+frame.getFrameId());
+        timeOutChecker.update(frame.getFrameId());//更新frameId时间
         //根据帧id，及当前帧的序列号
         ArrayList<Frame> frames = this.frames.get(frame.getFrameId());
         if (frames==null){
@@ -141,9 +153,14 @@ public class Server extends Thread {
                 //TODO 数据帧接收完毕
                 //组合数据
                 combineFrame(frames);
-                this.frames.remove(frame.getFrameId());
+                synchronized (mLock){
+                    this.frames.remove(frame.getFrameId());
+                }
+
             }else{
-                this.frames.put(frame.getFrameId(),frames);
+                synchronized (mLock){
+                    this.frames.put(frame.getFrameId(),frames);
+                }
             }
 
         }else{
@@ -153,9 +170,14 @@ public class Server extends Thread {
                 //TODO 数据帧接收完毕
                 //组合数据
                 combineFrame(frames);
-                this.frames.remove(frame.getFrameId());
+                synchronized (mLock){
+                    this.frames.remove(frame.getFrameId());
+                }
             }else{
-                this.frames.put(frame.getFrameId(),frames);
+                synchronized (mLock){
+                    this.frames.put(frame.getFrameId(),frames);
+                }
+
             }
         }
 

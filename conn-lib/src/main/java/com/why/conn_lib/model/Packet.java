@@ -1,11 +1,11 @@
-package com.why.conn_lib;
+package com.why.conn_lib.model;
 
 
-import java.net.DatagramPacket;
+import com.why.conn_lib.utils.AtomicIntegerUtil;
 
 public class Packet{
 	
-	private int id=AtomicIntegerUtil.getIncrementID();
+	private int id= AtomicIntegerUtil.getIncrementID();
 	private byte[] data;
 
 	public int getId() {

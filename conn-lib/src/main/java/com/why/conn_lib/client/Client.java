@@ -1,6 +1,12 @@
-package com.why.conn_lib;
+package com.why.conn_lib.client;
 
 import android.util.Log;
+
+import com.why.conn_lib.utils.DefaultAddress;
+import com.why.conn_lib.model.Frame;
+import com.why.conn_lib.model.FrameType;
+import com.why.conn_lib.utils.NumCovertUtils;
+import com.why.conn_lib.model.Packet;
 
 import java.io.IOException;
 import java.net.DatagramPacket;

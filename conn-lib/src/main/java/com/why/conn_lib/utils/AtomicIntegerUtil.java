@@ -1,4 +1,4 @@
-package com.why.conn_lib;
+package com.why.conn_lib.utils;
 
 import java.util.concurrent.atomic.AtomicInteger;
 

@@ -15,9 +15,9 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        server = new Intent(this, com.why.conn_lib.ServerService.class);
+        server = new Intent(this, com.why.conn_lib.server.ServerService.class);
         startService(server);
-        client = new Intent(this, com.why.conn_lib.ClientService.class);
+        client = new Intent(this, com.why.conn_lib.client.ClientService.class);
         startService(client);
 
         byte[] bytes = "dasdasdsadass".getBytes();

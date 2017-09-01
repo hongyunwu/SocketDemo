@@ -1,4 +1,6 @@
-package com.why.conn_lib;
+package com.why.conn_lib.model;
+
+import com.why.conn_lib.utils.NumCovertUtils;
 
 import java.util.Arrays;
 
