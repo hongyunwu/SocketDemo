@@ -8,7 +8,10 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 
 /**
  * Created by wuhongyun on 17-9-1.
@@ -18,6 +21,11 @@ public class Server extends Thread {
 
     public static final String TAG = "Server";
     private static final boolean DEBUG = true;
+
+    /**
+     * 缓冲池里边最多同时放1000个帧
+     */
+    private static final int LRU_FRAME_SIZE = 1000;
 
     private final int STATE_SOCKET_OPEN = 1;//socket打开
     private final int STATE_SOCKET_CLOSE = 1 << 1;//socket关闭
@@ -31,6 +39,17 @@ public class Server extends Thread {
     private InetAddress inetAddress;
     private int port;
 
+    //算法 - LRU算法
+    LinkedHashMap<Integer,ArrayList<Frame>> frames;
+
+    //比较器
+    private Comparator<? super Frame> frameComparator = new Comparator<Frame>() {
+        @Override
+        public int compare(Frame frame1, Frame frame2) {
+            return new Integer(frame1.getFrameSerial()).compareTo(new Integer(frame2.getFrameSerial()));
+        }
+    };
+
     public Server(){
         try {
             socket = new DatagramSocket(null);
@@ -39,6 +58,8 @@ public class Server extends Thread {
             e.printStackTrace();
             state = STATE_SOCKET_FAILED;
         }
+
+        frames = new LinkedHashMap<>();
 
     }
 
@@ -79,14 +100,13 @@ public class Server extends Thread {
             while (true){
                 try {
                     socket.receive(inPacket);
-                    //
                     //解析
                     byte[] data = new byte[inPacket.getLength()];
                     System.arraycopy(inPacket.getData(),0,data,0,inPacket.getLength());
-                    Log.i(TAG,"receive:"+ Arrays.toString(data));
-
                     handleFrame(data);
-
+                    if (onReceiveDataListener!=null){
+                        onReceiveDataListener.onReceivePartData(data);
+                    }
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -110,8 +130,65 @@ public class Server extends Thread {
      */
     private void handleFrame(byte[] data) {
         //重新构建一个frame出来，装到一个集合中
+        Frame frame = new Frame(data);
+        Log.i(TAG,"frame:"+frame+",id->"+frame.getFrameId());
+        //根据帧id，及当前帧的序列号
+        ArrayList<Frame> frames = this.frames.get(frame.getFrameId());
+        if (frames==null){
+            frames = new ArrayList<>();
+            frames.add(frame);
+            if (frames.size()==frame.getFrameSize()){
+                //TODO 数据帧接收完毕
+                //组合数据
+                combineFrame(frames);
+                this.frames.remove(frame.getFrameId());
+            }else{
+                this.frames.put(frame.getFrameId(),frames);
+            }
+
+        }else{
+            frames.add(frame);
+
+            if (frames.size()==frame.getFrameSize()){
+                //TODO 数据帧接收完毕
+                //组合数据
+                combineFrame(frames);
+                this.frames.remove(frame.getFrameId());
+            }else{
+                this.frames.put(frame.getFrameId(),frames);
+            }
+        }
 
 
 
     }
+
+
+    /**
+     * 当前数据包接收完成，进行数据组合
+     * @param frames
+     */
+    private void combineFrame(ArrayList<Frame> frames) {
+        Log.i(TAG,"开始组合数据："+frames);
+        //排序
+        Collections.sort(frames,frameComparator);
+        //取出data
+        byte[] bytes = new byte[0];
+        for (Frame frame : frames){
+            bytes = NumCovertUtils.combineBytes(bytes,frame.getData());
+        }
+        Log.i(TAG,"combineFrame:"+new String(bytes));
+        if (onReceiveDataListener!=null){
+            onReceiveDataListener.onReceiveData(bytes);
+        }
+
+    }
+
+    public void setOnReceiveDataListener(OnReceiveDataListener onReceiveDataListener) {
+        this.onReceiveDataListener = onReceiveDataListener;
+    }
+
+    private OnReceiveDataListener onReceiveDataListener;
+
+
 }

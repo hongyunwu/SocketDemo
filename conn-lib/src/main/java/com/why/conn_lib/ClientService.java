@@ -12,7 +12,8 @@ import android.support.annotation.Nullable;
  */
 
 public class ClientService extends Service {
-    private Client client;
+    private Client client0;
+    private Client client1;
 
 
     /**
@@ -40,12 +41,12 @@ public class ClientService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        client = new Client();
-        client.start();
-        for (int i = 0;i<2;i++){
-            client.sendData("1312314252334342");
-        }
-
+        client0 = new Client();
+        client0.start();
+        client1 = new Client();
+        client1.start();
+        client1.sendData("我地门打算");
+        client0.sendData("sadasadsa");
     }
 
 

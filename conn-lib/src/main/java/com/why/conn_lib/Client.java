@@ -102,11 +102,17 @@ public class Client extends Thread {
                         DatagramPacket datagramPacket = new DatagramPacket(frame,frame.length,inetAddress,port);
                         try {
                             socket.send(datagramPacket);
+                            if (onSendDataListener!=null){
+                                onSendDataListener.onSendPartData(frame);
+                            }
                         } catch (IOException e) {
                             e.printStackTrace();
                             //发送失败
                         }
 
+                    }
+                    if (onSendDataListener!=null){
+                        onSendDataListener.onSendData(data);
                     }
                 }
                 if (DEBUG){
@@ -133,11 +139,11 @@ public class Client extends Thread {
 
 
         Frame frame = new Frame(
-                new byte[]{0x11, 0x11, 0x22, 0x33},
+                FrameType.TYPE_MUSIC,
                 partData,
-                new byte[]{(byte) (frameSerial >> 8 & 0xff), (byte) (frameSerial & 0xff)},
-                new byte[]{(byte) (frameSize >> 8 & 0xff), (byte) (frameSize & 0xff)},
-                new byte[]{(byte) (frameId>>24&0xff), (byte) (frameId>>16&0xff), (byte) (frameId>>8&0xff), (byte) (frameId&0xff)});
+                NumCovertUtils.shortToBytes((short) frameSerial),
+                NumCovertUtils.shortToBytes((short) frameSize),
+                NumCovertUtils.intToBytes(frameId));
 
         byte[] bytes = frame.getFrame();
 
@@ -178,5 +184,10 @@ public class Client extends Thread {
         return packet;
     }
 
+    public void setOnSendDataListener(OnSendDataListener onSendDataListener) {
+        this.onSendDataListener = onSendDataListener;
+    }
+
+    private OnSendDataListener onSendDataListener;
 
 }
